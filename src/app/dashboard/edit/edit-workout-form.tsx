@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { format } from "date-fns";
-import { BookOpen, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,13 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createWorkout } from "./actions";
+import { updateWorkout } from "./actions";
 
 interface SetState {
   weight: string;
@@ -38,25 +30,6 @@ interface ExerciseState {
   name: string;
   notes: string;
   sets: SetState[];
-}
-
-interface TemplateSet {
-  order: number;
-  weight: string;
-  reps: number;
-  setType: string | null;
-}
-
-interface TemplateExercise {
-  name: string;
-  notes: string | null;
-  sets: TemplateSet[];
-}
-
-interface Template {
-  id: number;
-  name: string;
-  exercises: TemplateExercise[];
 }
 
 function emptySet(): SetState {
@@ -74,44 +47,44 @@ const SET_TYPES = [
   { value: "failure", label: "Failure" },
 ] as const;
 
-interface NewWorkoutFormProps {
-  dateStr: string;
-  userId: string;
-  templates: Template[];
+interface WorkoutData {
+  id: number;
+  name: string | null;
+  exercises: {
+    name: string;
+    notes: string | null;
+    sets: {
+      weight: string;
+      reps: number;
+      setType: string | null;
+    }[];
+  }[];
 }
 
-export function NewWorkoutForm({
-  dateStr,
-  userId,
-  templates,
-}: NewWorkoutFormProps) {
+interface EditWorkoutFormProps {
+  workout: WorkoutData;
+  userId: string;
+}
+
+export function EditWorkoutForm({ workout, userId }: EditWorkoutFormProps) {
   const [isPending, startTransition] = useTransition();
-  const [workoutName, setWorkoutName] = useState("");
-  const [exercises, setExercises] = useState<ExerciseState[]>([
-    emptyExercise(),
-  ]);
-  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
-
-  const displayDate = format(new Date(`${dateStr}T00:00:00`), "MMM d, yyyy");
-
-  function loadTemplate(template: Template) {
-    setWorkoutName(template.name);
-    setExercises(
-      template.exercises.map((ex) => ({
-        name: ex.name,
-        notes: ex.notes ?? "",
-        sets:
-          ex.sets.length > 0
-            ? ex.sets.map((s) => ({
-                weight: Number(s.weight) > 0 ? String(Number(s.weight)) : "",
-                reps: String(s.reps),
-                setType: s.setType ?? "working",
-              }))
-            : [emptySet()],
-      }))
-    );
-    setTemplateDialogOpen(false);
-  }
+  const [workoutName, setWorkoutName] = useState(workout.name ?? "");
+  const [exercises, setExercises] = useState<ExerciseState[]>(() =>
+    workout.exercises.length > 0
+      ? workout.exercises.map((ex) => ({
+          name: ex.name,
+          notes: ex.notes ?? "",
+          sets:
+            ex.sets.length > 0
+              ? ex.sets.map((s) => ({
+                  weight: Number(s.weight) > 0 ? String(Number(s.weight)) : "",
+                  reps: String(s.reps),
+                  setType: s.setType ?? "working",
+                }))
+              : [emptySet()],
+        }))
+      : [emptyExercise()]
+  );
 
   function addExercise() {
     setExercises((prev) => [...prev, emptyExercise()]);
@@ -172,9 +145,8 @@ export function NewWorkoutForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     startTransition(async () => {
-      await createWorkout(userId, {
+      await updateWorkout(workout.id, userId, {
         name: workoutName,
-        date: dateStr,
         exercises: exercises.map((ex) => ({
           name: ex.name,
           notes: ex.notes,
@@ -191,40 +163,7 @@ export function NewWorkoutForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">New Workout — {displayDate}</h2>
-        {templates.length > 0 && (
-          <Dialog
-            open={templateDialogOpen}
-            onOpenChange={setTemplateDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button type="button" variant="outline" size="sm">
-                <BookOpen className="size-4" />
-                Load Template
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Load a Template</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-2 pt-2">
-                {templates.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => loadTemplate(t)}
-                    className="w-full rounded-lg border p-4 text-left hover:bg-muted transition-colors"
-                  >
-                    <p className="font-medium">{t.name}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t.exercises.map((e) => e.name).join(", ")}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+        <h2 className="text-lg font-semibold">Edit Workout</h2>
       </div>
 
       <div className="space-y-2">
@@ -359,7 +298,7 @@ export function NewWorkoutForm({
           <Plus /> Add Exercise
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving..." : "Save Workout"}
+          {isPending ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </form>

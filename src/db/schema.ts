@@ -83,6 +83,72 @@ export const setsRelations = relations(sets, ({ one }) => ({
   }),
 }));
 
+// ── Templates ────────────────────────────────────────────────
+
+export const templates = pgTable(
+  "templates",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("templates_user_id_idx").on(t.userId)]
+);
+
+export const templatesRelations = relations(templates, ({ many }) => ({
+  exercises: many(templateExercises),
+}));
+
+export const templateExercises = pgTable(
+  "template_exercises",
+  {
+    id: serial("id").primaryKey(),
+    templateId: integer("template_id")
+      .notNull()
+      .references(() => templates.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    orderInTemplate: integer("order_in_template").notNull().default(0),
+    notes: text("notes"),
+  },
+  (t) => [index("template_exercises_template_id_idx").on(t.templateId)]
+);
+
+export const templateExercisesRelations = relations(
+  templateExercises,
+  ({ one, many }) => ({
+    template: one(templates, {
+      fields: [templateExercises.templateId],
+      references: [templates.id],
+    }),
+    sets: many(templateSets),
+  })
+);
+
+export const templateSets = pgTable(
+  "template_sets",
+  {
+    id: serial("id").primaryKey(),
+    templateExerciseId: integer("template_exercise_id")
+      .notNull()
+      .references(() => templateExercises.id, { onDelete: "cascade" }),
+    order: integer("order").notNull().default(1),
+    weight: decimal("weight", { precision: 10, scale: 2 }).notNull(),
+    reps: integer("reps").notNull(),
+    setType: varchar("set_type", { length: 50 }).default("working"),
+  },
+  (t) => [
+    index("template_sets_exercise_id_idx").on(t.templateExerciseId),
+  ]
+);
+
+export const templateSetsRelations = relations(templateSets, ({ one }) => ({
+  exercise: one(templateExercises, {
+    fields: [templateSets.templateExerciseId],
+    references: [templateExercises.id],
+  }),
+}));
+
 // ── Inferred types ──────────────────────────────────────────
 
 export type Workout = typeof workouts.$inferSelect;
@@ -93,4 +159,13 @@ export type NewExercise = typeof exercises.$inferInsert;
 
 export type Set = typeof sets.$inferSelect;
 export type NewSet = typeof sets.$inferInsert;
+
+export type Template = typeof templates.$inferSelect;
+export type NewTemplate = typeof templates.$inferInsert;
+
+export type TemplateExercise = typeof templateExercises.$inferSelect;
+export type NewTemplateExercise = typeof templateExercises.$inferInsert;
+
+export type TemplateSet = typeof templateSets.$inferSelect;
+export type NewTemplateSet = typeof templateSets.$inferInsert;
 

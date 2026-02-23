@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { NewWorkoutForm } from "./new-workout-form";
+import { getTemplates } from "@/app/dashboard/templates/actions";
 
 export default async function NewWorkoutPage({
   searchParams,
@@ -13,10 +14,11 @@ export default async function NewWorkoutPage({
 
   const params = await searchParams;
   const dateStr = params.date ?? format(new Date(), "yyyy-MM-dd");
+  const templates = await getTemplates(userId);
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <NewWorkoutForm dateStr={dateStr} userId={userId} />
+      <NewWorkoutForm dateStr={dateStr} userId={userId} templates={templates} />
     </div>
   );
 }

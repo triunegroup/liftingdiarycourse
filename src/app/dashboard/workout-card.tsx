@@ -1,8 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { format } from "date-fns";
-import { Trash2 } from "lucide-react";
+import { BookmarkPlus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { deleteWorkout } from "./actions";
+import { saveTemplate } from "./templates/actions";
 
 interface WorkoutSet {
   id: number;
@@ -70,6 +72,10 @@ export function WorkoutCard({
     startTransition(() => deleteWorkout(workout.id, userId));
   }
 
+  function handleSaveTemplate() {
+    startTransition(() => saveTemplate(userId, workout.id));
+  }
+
   return (
     <Card className={isPending ? "opacity-50" : undefined}>
       <CardHeader>
@@ -79,6 +85,20 @@ export function WorkoutCard({
           {duration != null && ` · ${duration} min`}
         </CardDescription>
         <CardAction>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={isPending}
+            onClick={handleSaveTemplate}
+            title="Save as template"
+          >
+            <BookmarkPlus className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" disabled={isPending} asChild>
+            <Link href={`/dashboard/edit?id=${workout.id}`}>
+              <Pencil className="size-4" />
+            </Link>
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="icon" disabled={isPending}>
