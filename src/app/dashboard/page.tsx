@@ -16,5 +16,5 @@ export default async function DashboardPage({
   const dateStr = params.date ?? format(new Date(), "yyyy-MM-dd");
   const workouts = await getWorkoutsByDate(userId, dateStr);
 
-  return <DashboardShell dateStr={dateStr} workouts={workouts} />;
+  return <DashboardShell dateStr={dateStr} workouts={workouts} userId={userId} />;
 }

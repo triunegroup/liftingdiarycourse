@@ -10,9 +10,10 @@ import { WorkoutCard, type WorkoutWithExercises } from "./workout-card";
 interface DashboardShellProps {
   dateStr: string;
   workouts: WorkoutWithExercises[];
+  userId: string;
 }
 
-export function DashboardShell({ dateStr, workouts }: DashboardShellProps) {
+export function DashboardShell({ dateStr, workouts, userId }: DashboardShellProps) {
   const selectedDate = new Date(`${dateStr}T00:00:00`);
   const displayDate = format(selectedDate, "MMM d, yyyy");
 
@@ -38,7 +39,7 @@ export function DashboardShell({ dateStr, workouts }: DashboardShellProps) {
           </p>
         ) : (
           workouts.map((workout) => (
-            <WorkoutCard key={workout.id} workout={workout} />
+            <WorkoutCard key={workout.id} workout={workout} userId={userId} />
           ))
         )}
       </main>

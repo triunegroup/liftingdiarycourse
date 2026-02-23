@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { workouts } from "@/db/schema";
 import { and, eq, gte, lt } from "drizzle-orm";
@@ -23,4 +24,12 @@ export async function getWorkoutsByDate(userId: string, date: string) {
     },
     orderBy: (workouts, { asc }) => [asc(workouts.startedAt)],
   });
+}
+
+export async function deleteWorkout(workoutId: number, userId: string) {
+  await db
+    .delete(workouts)
+    .where(and(eq(workouts.id, workoutId), eq(workouts.userId, userId)));
+
+  revalidatePath("/dashboard");
 }

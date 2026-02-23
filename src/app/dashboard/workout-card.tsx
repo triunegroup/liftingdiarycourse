@@ -1,13 +1,29 @@
 "use client";
 
+import { useTransition } from "react";
 import { format } from "date-fns";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deleteWorkout } from "./actions";
 
 interface WorkoutSet {
   id: number;
@@ -33,7 +49,14 @@ export interface WorkoutWithExercises {
   exercises: WorkoutExercise[];
 }
 
-export function WorkoutCard({ workout }: { workout: WorkoutWithExercises }) {
+export function WorkoutCard({
+  workout,
+  userId,
+}: {
+  workout: WorkoutWithExercises;
+  userId: string;
+}) {
+  const [isPending, startTransition] = useTransition();
   const startTime = format(new Date(workout.startedAt), "h:mm a");
   const duration = workout.completedAt
     ? Math.round(
@@ -43,14 +66,42 @@ export function WorkoutCard({ workout }: { workout: WorkoutWithExercises }) {
       )
     : null;
 
+  function handleDelete() {
+    startTransition(() => deleteWorkout(workout.id, userId));
+  }
+
   return (
-    <Card>
+    <Card className={isPending ? "opacity-50" : undefined}>
       <CardHeader>
         <CardTitle>{workout.name || "Workout"}</CardTitle>
         <CardDescription>
           {startTime}
           {duration != null && ` · ${duration} min`}
         </CardDescription>
+        <CardAction>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" disabled={isPending}>
+                <Trash2 className="size-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete workout?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this workout and all its
+                  exercises. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
         {workout.exercises.map((exercise) => (
