@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import { BarChart2, Play, Plus } from "lucide-react";
+import { BarChart2, History, Play, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "./date-picker";
 import { WorkoutCard, type WorkoutWithExercises } from "./workout-card";
@@ -39,6 +39,13 @@ export function DashboardShell({ dateStr, workouts, userId }: DashboardShellProp
         >
           <BarChart2 className="size-4" />
           Progress
+        </Link>
+        <Link
+          href="/history"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
+          <History className="size-4" />
+          History
         </Link>
       </aside>
 
