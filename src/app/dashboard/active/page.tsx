@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getActiveWorkout } from "./actions";
+import { getActiveWorkout, getPreviousPerformance } from "./actions";
 import { ActiveWorkout } from "./active-workout";
 
 export default async function ActiveWorkoutPage({
@@ -18,9 +18,12 @@ export default async function ActiveWorkoutPage({
   const workout = await getActiveWorkout(workoutId, userId);
   if (!workout) redirect("/dashboard");
 
+  const exerciseNames = workout.exercises.map((e) => e.name);
+  const previousPerformance = await getPreviousPerformance(userId, exerciseNames, workoutId);
+
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <ActiveWorkout workout={workout} userId={userId} />
+      <ActiveWorkout workout={workout} userId={userId} previousPerformance={previousPerformance} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
+import { format } from "date-fns";
 import { CheckCircle2, Plus, Timer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,7 @@ import {
   logSet,
   deleteSet,
   finishWorkout,
+  type PreviousPerformance,
 } from "./actions";
 
 interface WorkoutSet {
@@ -260,9 +262,11 @@ function AddExerciseForm({ workoutId, userId }: AddExerciseFormProps) {
 export function ActiveWorkout({
   workout,
   userId,
+  previousPerformance,
 }: {
   workout: ActiveWorkoutData;
   userId: string;
+  previousPerformance: PreviousPerformance;
 }) {
   const [isPending, startTransition] = useTransition();
   const elapsed = useElapsedTime(workout.startedAt);
@@ -315,23 +319,46 @@ export function ActiveWorkout({
         </p>
       )}
 
-      {workout.exercises.map((exercise) => (
-        <Card key={exercise.id}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{exercise.name}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {exercise.sets.length > 0 && (
-              <div className="space-y-1">
-                {exercise.sets.map((set) => (
-                  <SetRow key={set.id} set={set} userId={userId} />
-                ))}
-              </div>
-            )}
-            <AddSetForm exerciseId={exercise.id} userId={userId} />
-          </CardContent>
-        </Card>
-      ))}
+      {workout.exercises.map((exercise) => {
+        const prev = previousPerformance[exercise.name];
+        return (
+          <Card key={exercise.id}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{exercise.name}</CardTitle>
+              {prev && (
+                <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
+                  <span className="font-medium">
+                    Last · {format(new Date(prev.date), "MMM d")}
+                  </span>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    {prev.sets.map((s, i) => (
+                      <span key={i} className="tabular-nums">
+                        {i + 1}.{" "}
+                        {Number(s.weight) > 0
+                          ? `${Number(s.weight)} kg × ${s.reps}`
+                          : `${s.reps} reps`}
+                        {s.setType && s.setType !== "working"
+                          ? ` (${s.setType})`
+                          : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {exercise.sets.length > 0 && (
+                <div className="space-y-1">
+                  {exercise.sets.map((set) => (
+                    <SetRow key={set.id} set={set} userId={userId} />
+                  ))}
+                </div>
+              )}
+              <AddSetForm exerciseId={exercise.id} userId={userId} />
+            </CardContent>
+          </Card>
+        );
+      })}
 
       <AddExerciseForm workoutId={workout.id} userId={userId} />
     </div>

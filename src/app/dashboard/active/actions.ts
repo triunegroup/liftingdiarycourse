@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { workouts, exercises, sets } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne, isNotNull, inArray, desc, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -89,6 +89,67 @@ export async function deleteSet(setId: number, userId: string) {
 
   await db.delete(sets).where(eq(sets.id, setId));
   revalidatePath(`/dashboard/active`);
+}
+
+export type PrevSet = {
+  order: number;
+  weight: string;
+  reps: number;
+  setType: string | null;
+};
+export type PreviousPerformance = Record<string, { date: Date; sets: PrevSet[] }>;
+
+export async function getPreviousPerformance(
+  userId: string,
+  exerciseNames: string[],
+  currentWorkoutId: number
+): Promise<PreviousPerformance> {
+  if (exerciseNames.length === 0) return {};
+
+  const rows = await db
+    .select({
+      exerciseName: exercises.name,
+      workoutId: workouts.id,
+      weight: sets.weight,
+      reps: sets.reps,
+      setType: sets.setType,
+      setOrder: sets.order,
+      workoutStartedAt: workouts.startedAt,
+    })
+    .from(sets)
+    .innerJoin(exercises, eq(sets.exerciseId, exercises.id))
+    .innerJoin(workouts, eq(exercises.workoutId, workouts.id))
+    .where(
+      and(
+        eq(workouts.userId, userId),
+        ne(workouts.id, currentWorkoutId),
+        isNotNull(workouts.completedAt),
+        inArray(exercises.name, exerciseNames)
+      )
+    )
+    .orderBy(desc(workouts.startedAt), asc(sets.order));
+
+  const latestWorkoutIdByExercise: Record<string, number> = {};
+  const result: PreviousPerformance = {};
+
+  for (const row of rows) {
+    if (!latestWorkoutIdByExercise[row.exerciseName]) {
+      latestWorkoutIdByExercise[row.exerciseName] = row.workoutId;
+    }
+    if (latestWorkoutIdByExercise[row.exerciseName] === row.workoutId) {
+      if (!result[row.exerciseName]) {
+        result[row.exerciseName] = { date: row.workoutStartedAt, sets: [] };
+      }
+      result[row.exerciseName].sets.push({
+        order: row.setOrder,
+        weight: row.weight,
+        reps: row.reps,
+        setType: row.setType,
+      });
+    }
+  }
+
+  return result;
 }
 
 export async function finishWorkout(workoutId: number, userId: string) {
