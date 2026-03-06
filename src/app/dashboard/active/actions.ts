@@ -152,12 +152,30 @@ export async function getPreviousPerformance(
   return result;
 }
 
+export async function updateExerciseNotes(
+  exerciseId: number,
+  userId: string,
+  notes: string
+) {
+  const exercise = await db.query.exercises.findFirst({
+    where: eq(exercises.id, exerciseId),
+    with: { workout: true },
+  });
+  if (!exercise || exercise.workout.userId !== userId) return;
+
+  await db
+    .update(exercises)
+    .set({ notes: notes.trim() || null })
+    .where(eq(exercises.id, exerciseId));
+
+  revalidatePath("/dashboard/active");
+}
+
 export async function finishWorkout(workoutId: number, userId: string) {
   await db
     .update(workouts)
     .set({ completedAt: new Date() })
     .where(and(eq(workouts.id, workoutId), eq(workouts.userId, userId)));
 
-  revalidatePath("/dashboard");
-  redirect("/dashboard");
+  redirect(`/dashboard/summary?id=${workoutId}`);
 }

@@ -6,6 +6,7 @@ import {
   integer,
   timestamp,
   decimal,
+  date,
   index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
@@ -149,6 +150,23 @@ export const templateSetsRelations = relations(templateSets, ({ one }) => ({
   }),
 }));
 
+// ── Body Weight ──────────────────────────────────────────────
+
+export const bodyWeightEntries = pgTable(
+  "body_weight_entries",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    date: date("date").notNull(),
+    weight: decimal("weight", { precision: 6, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("body_weight_entries_user_id_idx").on(t.userId),
+    index("body_weight_entries_date_idx").on(t.date),
+  ]
+);
+
 // ── Inferred types ──────────────────────────────────────────
 
 export type Workout = typeof workouts.$inferSelect;
@@ -168,4 +186,7 @@ export type NewTemplateExercise = typeof templateExercises.$inferInsert;
 
 export type TemplateSet = typeof templateSets.$inferSelect;
 export type NewTemplateSet = typeof templateSets.$inferInsert;
+
+export type BodyWeightEntry = typeof bodyWeightEntries.$inferSelect;
+export type NewBodyWeightEntry = typeof bodyWeightEntries.$inferInsert;
 

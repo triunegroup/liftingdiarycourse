@@ -35,6 +35,7 @@ import {
   logSet,
   deleteSet,
   finishWorkout,
+  updateExerciseNotes,
   type PreviousPerformance,
 } from "./actions";
 
@@ -49,6 +50,7 @@ interface WorkoutSet {
 interface WorkoutExercise {
   id: number;
   name: string;
+  notes: string | null;
   sets: WorkoutSet[];
 }
 
@@ -198,6 +200,65 @@ function AddSetForm({ exerciseId, userId }: AddSetFormProps) {
   );
 }
 
+interface NotesEditorProps {
+  exerciseId: number;
+  userId: string;
+  initialNotes: string | null;
+}
+
+function NotesEditor({ exerciseId, userId, initialNotes }: NotesEditorProps) {
+  const [editing, setEditing] = useState(false);
+  const [notes, setNotes] = useState(initialNotes ?? "");
+  const [isPending, startTransition] = useTransition();
+
+  function handleSave() {
+    startTransition(async () => {
+      await updateExerciseNotes(exerciseId, userId, notes);
+      setEditing(false);
+    });
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 mt-1">
+        <Input
+          autoFocus
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Add a cue or note..."
+          className="h-7 text-xs"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          disabled={isPending}
+        />
+        <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={isPending}>
+          Save
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-xs"
+          onClick={() => setEditing(false)}
+          disabled={isPending}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      className="block text-xs text-muted-foreground hover:text-foreground transition-colors mt-1 text-left"
+      onClick={() => setEditing(true)}
+    >
+      {notes || <span className="opacity-40">Add note...</span>}
+    </button>
+  );
+}
+
 interface AddExerciseFormProps {
   workoutId: number;
   userId: string;
@@ -325,6 +386,11 @@ export function ActiveWorkout({
           <Card key={exercise.id}>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">{exercise.name}</CardTitle>
+              <NotesEditor
+                exerciseId={exercise.id}
+                userId={userId}
+                initialNotes={exercise.notes}
+              />
               {prev && (
                 <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
                   <span className="font-medium">
